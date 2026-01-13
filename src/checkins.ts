@@ -30,7 +30,24 @@ export type DeviceCheckinDays = {
 	days: string[];
 };
 
-function toDayString(timestamp: number): string {
+function toDayString(timestamp: number, timeZone?: string | null): string {
+	if (timeZone) {
+		try {
+			const parts = new Intl.DateTimeFormat('en-US', {
+				timeZone,
+				year: 'numeric',
+				month: '2-digit',
+				day: '2-digit',
+			}).formatToParts(new Date(timestamp));
+			const year = parts.find((part) => part.type === 'year')?.value;
+			const month = parts.find((part) => part.type === 'month')?.value;
+			const day = parts.find((part) => part.type === 'day')?.value;
+			if (year && month && day) {
+				return `${year}-${month}-${day}`;
+			}
+		} catch {
+		}
+	}
 	return new Date(timestamp).toISOString().slice(0, 10);
 }
 
@@ -50,11 +67,12 @@ export async function recordCheckin(
 	deviceId: string,
 	match: { gym: Gym; distanceM: number },
 	timestamp: number,
+	timeZone?: string | null,
 ): Promise<CheckinRecord> {
 	if (!env.DB) {
 		throw new Error('DB binding not configured');
 	}
-	const day = toDayString(timestamp);
+	const day = toDayString(timestamp, timeZone);
 	const existingStatement = env.DB
 		.prepare('SELECT gym_id, checked_in_at FROM checkins WHERE user_id = ? AND day = ?;')
 		.bind(deviceId, day);

@@ -36,6 +36,7 @@ export async function handleIngest(request: Request, env: Env): Promise<Response
 	const checkinRadiusM = GYM_CHECKIN_RADIUS_M;
 	const maxAccuracy = MAX_ACCURACY_M;
 	const localCache = new Map<string, Promise<Gym[]>>();
+	const timeZone = request.cf?.timezone ?? null;
 	const checkins: CheckinRecord[] = [];
 	const skipped: SkippedEvent[] = [];
 	const errors: string[] = [];
@@ -61,7 +62,7 @@ export async function handleIngest(request: Request, env: Env): Promise<Response
 		}
 
 		try {
-			const record = await recordCheckin(env, deviceId, match, event.timestamp);
+			const record = await recordCheckin(env, deviceId, match, event.timestamp, timeZone);
 			checkins.push(record);
 		} catch (error) {
 			errors.push(error instanceof Error ? error.message : 'Failed to record checkin');
