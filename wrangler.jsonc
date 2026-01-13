@@ -4,12 +4,24 @@
  */
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "familygymtracker",
+	"name": "famtracker",
 	"main": "src/index.ts",
 	"compatibility_date": "2025-09-27",
 	"observability": {
 		"enabled": true
-	}
+	},
+	"kv_namespaces": [
+		{
+			"id": "6f55e8ee013d49a1be34c9e63113c069",
+			"binding": "GYM_CACHE"
+		}
+	],
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_id": "b5616be3-8775-4a5a-ba5b-c2ec0904ed6b"
+		}
+	]
 	/**
 	 * Smart Placement
 	 * https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement
