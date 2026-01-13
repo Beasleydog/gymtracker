@@ -1,0 +1,2 @@
+Cloudflare worker!
+Gets lat long location from the [traccar client](https://www.traccar.org/client/), pulls (if not already cached in KV from a recent nearby search) nearby gyms with [overpass turbo api](https://overpass-turbo.eu/) to see if the user is currently at the gym. if they're at the gym for two pings in a row (to make sure they're not just walking by) then update D1 to say they went to the gym today.
