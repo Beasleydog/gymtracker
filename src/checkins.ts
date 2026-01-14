@@ -52,7 +52,9 @@ function toDayString(timestamp: number, timeZone?: string | null): string {
 }
 
 function toPendingTimestamp(timestamp: number): number {
-	return -Math.abs(Math.trunc(timestamp));
+	// Pending checkins disabled; always store positive timestamps.
+	return Math.trunc(timestamp);
+	// return -Math.abs(Math.trunc(timestamp));
 }
 
 function splitCheckinTimestamp(timestamp: number): { checkedInAt: number; pending: boolean } {
@@ -60,6 +62,23 @@ function splitCheckinTimestamp(timestamp: number): { checkedInAt: number; pendin
 		return { checkedInAt: Math.abs(timestamp), pending: true };
 	}
 	return { checkedInAt: timestamp, pending: false };
+}
+
+export async function clearPendingCheckin(
+	env: Env,
+	deviceId: string,
+	timestamp: number,
+	timeZone?: string | null,
+): Promise<boolean> {
+	if (!env.DB) {
+		throw new Error('DB binding not configured');
+	}
+	const day = toDayString(timestamp, timeZone);
+	const result = await env.DB
+		.prepare('DELETE FROM checkins WHERE user_id = ? AND day = ? AND checked_in_at < 0;')
+		.bind(deviceId, day)
+		.run();
+	return result.changes > 0;
 }
 
 export async function recordCheckin(
@@ -90,7 +109,7 @@ export async function recordCheckin(
 			gym: match.gym,
 			distanceM: match.distanceM,
 			checkedInAt: timestamp,
-			pending: true,
+			pending: false,
 			inserted: result.changes > 0,
 		};
 	}
@@ -141,7 +160,7 @@ export async function recordCheckin(
 			gym: match.gym,
 			distanceM: match.distanceM,
 			checkedInAt: timestamp,
-			pending: true,
+			pending: false,
 			inserted: false,
 		};
 	}

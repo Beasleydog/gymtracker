@@ -1,4 +1,4 @@
-import { recordCheckin } from '../checkins';
+import { clearPendingCheckin, recordCheckin } from '../checkins';
 import { GYM_CHECKIN_RADIUS_M, GYM_SEARCH_RADIUS_M, MAX_ACCURACY_M } from '../constants';
 import { jsonResponse } from '../http';
 import { extractPayload } from '../parse';
@@ -58,6 +58,11 @@ export async function handleIngest(request: Request, env: Env): Promise<Response
 
 		const match = findNearestGym(gyms, event.lat, event.lon, checkinRadiusM);
 		if (!match) {
+			try {
+				await clearPendingCheckin(env, deviceId, event.timestamp, timeZone);
+			} catch (error) {
+				errors.push(error instanceof Error ? error.message : 'Failed to clear pending checkin');
+			}
 			continue;
 		}
 
