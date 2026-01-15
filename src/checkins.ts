@@ -52,9 +52,7 @@ function toDayString(timestamp: number, timeZone?: string | null): string {
 }
 
 function toPendingTimestamp(timestamp: number): number {
-	// Pending checkins disabled; always store positive timestamps.
-	return Math.trunc(timestamp);
-	// return -Math.abs(Math.trunc(timestamp));
+	return -Math.abs(Math.trunc(timestamp));
 }
 
 function splitCheckinTimestamp(timestamp: number): { checkedInAt: number; pending: boolean } {
@@ -109,7 +107,7 @@ export async function recordCheckin(
 			gym: match.gym,
 			distanceM: match.distanceM,
 			checkedInAt: timestamp,
-			pending: false,
+			pending: true,
 			inserted: result.changes > 0,
 		};
 	}
@@ -160,7 +158,7 @@ export async function recordCheckin(
 			gym: match.gym,
 			distanceM: match.distanceM,
 			checkedInAt: timestamp,
-			pending: false,
+			pending: true,
 			inserted: false,
 		};
 	}
