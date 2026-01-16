@@ -7,6 +7,7 @@ import {
 } from './constants';
 import { encodeGeohash, haversineDistanceM } from './geo';
 import { MANUAL_GYMS } from './manual-gyms';
+import { BANNED_GYMS } from './banned-gyms';
 import { Env, Gym } from './types';
 
 function sleep(ms: number): Promise<void> {
@@ -185,6 +186,9 @@ export function findNearestGym(
 ): { gym: Gym; distanceM: number } | null {
 	let best: { gym: Gym; distanceM: number } | null = null;
 	for (const gym of gyms) {
+		if (BANNED_GYMS.has(gym.id)) {
+			continue;
+		}
 		const distance = haversineDistanceM(lat, lon, gym.lat, gym.lon);
 		if (distance <= maxDistance && (!best || distance < best.distanceM)) {
 			best = { gym, distanceM: distance };
