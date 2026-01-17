@@ -85,6 +85,7 @@ export async function recordCheckin(
 	match: { gym: Gym; distanceM: number },
 	timestamp: number,
 	timeZone?: string | null,
+	options?: { forceConfirmed?: boolean },
 ): Promise<CheckinRecord> {
 	if (!env.DB) {
 		throw new Error('DB binding not configured');
@@ -96,18 +97,20 @@ export async function recordCheckin(
 	const { results: existingResults } = await existingStatement.all<ExistingCheckinRow>();
 	const existing = existingResults[0];
 
+	const forceConfirmed = options?.forceConfirmed ?? false;
 	const pendingTimestamp = toPendingTimestamp(timestamp);
+	const storedTimestamp = forceConfirmed ? timestamp : pendingTimestamp;
 	if (!existing) {
 		const statement = env.DB.prepare(
 			'INSERT INTO checkins (user_id, day, gym_id, gym_name, checked_in_at, lat, lon, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(user_id, day) DO NOTHING;',
-		).bind(deviceId, day, match.gym.id, match.gym.name, pendingTimestamp, match.gym.lat, match.gym.lon, match.gym.source);
+		).bind(deviceId, day, match.gym.id, match.gym.name, storedTimestamp, match.gym.lat, match.gym.lon, match.gym.source);
 		const result = await statement.run();
 		return {
 			day,
 			gym: match.gym,
 			distanceM: match.distanceM,
 			checkedInAt: timestamp,
-			pending: true,
+			pending: !forceConfirmed,
 			inserted: result.changes > 0,
 		};
 	}
@@ -138,6 +141,7 @@ export async function recordCheckin(
 			};
 		}
 
+		const nextTimestamp = forceConfirmed ? timestamp : pendingTimestamp;
 		await env.DB
 			.prepare(
 				'UPDATE checkins SET gym_id = ?, gym_name = ?, checked_in_at = ?, lat = ?, lon = ?, source = ? WHERE user_id = ? AND day = ?;',
@@ -145,7 +149,7 @@ export async function recordCheckin(
 			.bind(
 				match.gym.id,
 				match.gym.name,
-				pendingTimestamp,
+				nextTimestamp,
 				match.gym.lat,
 				match.gym.lon,
 				match.gym.source,
@@ -158,7 +162,7 @@ export async function recordCheckin(
 			gym: match.gym,
 			distanceM: match.distanceM,
 			checkedInAt: timestamp,
-			pending: true,
+			pending: !forceConfirmed,
 			inserted: false,
 		};
 	}

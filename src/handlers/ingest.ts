@@ -1,5 +1,5 @@
 import { clearPendingCheckin, recordCheckin } from '../checkins';
-import { GYM_CHECKIN_RADIUS_M, GYM_SEARCH_RADIUS_M, MAX_ACCURACY_M } from '../constants';
+import { FOR_SURE_AT_GYM_RADIUS_M, GYM_CHECKIN_RADIUS_M, GYM_SEARCH_RADIUS_M, MAX_ACCURACY_M } from '../constants';
 import { jsonResponse } from '../http';
 import { extractPayload } from '../parse';
 import { findNearestGym, getGymsForLocation } from '../gyms';
@@ -34,6 +34,7 @@ export async function handleIngest(request: Request, env: Env): Promise<Response
 
 	const radiusM = GYM_SEARCH_RADIUS_M;
 	const checkinRadiusM = GYM_CHECKIN_RADIUS_M;
+	const forSureRadiusM = FOR_SURE_AT_GYM_RADIUS_M;
 	const maxAccuracy = MAX_ACCURACY_M;
 	const localCache = new Map<string, Promise<Gym[]>>();
 	const timeZone = request.cf?.timezone ?? null;
@@ -67,7 +68,8 @@ export async function handleIngest(request: Request, env: Env): Promise<Response
 		}
 
 		try {
-			const record = await recordCheckin(env, deviceId, match, event.timestamp, timeZone);
+			const forceConfirmed = match.distanceM <= forSureRadiusM;
+			const record = await recordCheckin(env, deviceId, match, event.timestamp, timeZone, { forceConfirmed });
 			checkins.push(record);
 		} catch (error) {
 			errors.push(error instanceof Error ? error.message : 'Failed to record checkin');
