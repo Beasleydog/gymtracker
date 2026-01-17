@@ -8,6 +8,7 @@ import {
 import { encodeGeohash, haversineDistanceM } from './geo';
 import { MANUAL_GYMS } from './manual-gyms';
 import { BANNED_GYMS } from './banned-gyms';
+import { GYM_RADIUS_OVERRIDES_M } from './gym-radius-overrides';
 import { Env, Gym } from './types';
 
 function sleep(ms: number): Promise<void> {
@@ -190,7 +191,9 @@ export function findNearestGym(
 			continue;
 		}
 		const distance = haversineDistanceM(lat, lon, gym.lat, gym.lon);
-		if (distance <= maxDistance && (!best || distance < best.distanceM)) {
+		const overrideRadius = GYM_RADIUS_OVERRIDES_M.get(gym.id);
+		const allowedDistance = overrideRadius === undefined ? maxDistance : Math.max(maxDistance, overrideRadius);
+		if (distance <= allowedDistance && (!best || distance < best.distanceM)) {
 			best = { gym, distanceM: distance };
 		}
 	}
