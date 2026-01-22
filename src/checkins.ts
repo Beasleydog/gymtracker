@@ -1,3 +1,4 @@
+import { MIN_PENDING_CONFIRMATION_MINUTES } from './constants';
 import { CheckinRecord, Env, Gym } from './types';
 
 type StoredCheckinRow = {
@@ -117,26 +118,38 @@ export async function recordCheckin(
 
 	if (existing.checked_in_at < 0) {
 		if (existing.gym_id === match.gym.id) {
-			await env.DB
-				.prepare(
-					'UPDATE checkins SET checked_in_at = ?, gym_name = ?, lat = ?, lon = ?, source = ? WHERE user_id = ? AND day = ?;',
-				)
-				.bind(
-					timestamp,
-					match.gym.name,
-					match.gym.lat,
-					match.gym.lon,
-					match.gym.source,
-					deviceId,
+			const pendingCheckedInAt = Math.abs(existing.checked_in_at);
+			const minPendingAgeMs = MIN_PENDING_CONFIRMATION_MINUTES * 60 * 1000;
+			if (forceConfirmed || timestamp - pendingCheckedInAt >= minPendingAgeMs) {
+				await env.DB
+					.prepare(
+						'UPDATE checkins SET checked_in_at = ?, gym_name = ?, lat = ?, lon = ?, source = ? WHERE user_id = ? AND day = ?;',
+					)
+					.bind(
+						timestamp,
+						match.gym.name,
+						match.gym.lat,
+						match.gym.lon,
+						match.gym.source,
+						deviceId,
+						day,
+					)
+					.run();
+				return {
 					day,
-				)
-				.run();
+					gym: match.gym,
+					distanceM: match.distanceM,
+					checkedInAt: timestamp,
+					pending: false,
+					inserted: false,
+				};
+			}
 			return {
 				day,
 				gym: match.gym,
 				distanceM: match.distanceM,
-				checkedInAt: timestamp,
-				pending: false,
+				checkedInAt: pendingCheckedInAt,
+				pending: true,
 				inserted: false,
 			};
 		}
